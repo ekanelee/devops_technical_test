@@ -42,32 +42,32 @@ variable "deletion_protection" {
   type        = bool
   description = "Blocks accidental deletion of the database and Cloud Run service. false only in dev."
 }
-variable "image_tag" { 
-  type        = string 
-  description = "Tag of the images to deploy (Git SHA). Supplied at run time, not in tfvars." 
-} 
- 
-variable "min_instances" { 
-  type        = number 
-  description = "Minimum Cloud Run instances. 0 saves money but causes cold starts." 
-} 
- 
-variable "max_instances" { 
-  type        = number 
-  description = "Maximum Cloud Run instances, a cost safety limit." 
-} 
- 
-variable "concurrency" { 
-  type        = number 
-  description = "Concurrent requests per instance. Keep close to pm.max_children in the PHP-FPM pool." 
+variable "image_tag" {
+  type        = string
+  description = "Tag of the images to deploy (Git SHA). Supplied at run time, not in tfvars."
 }
 
-variable "enable_https" { 
-  type        = bool 
-  description = "Create a Google-managed certificate and HTTPS listener. Requires a domain." 
-} 
- 
-variable "domain" { 
-  type        = string 
-  description = "Domain pointing at the load balancer IP. Leave empty when enable_https is false." 
+variable "min_instances" {
+  type        = number
+  description = "Minimum Cloud Run instances. 0 saves money but causes cold starts."
+}
+
+variable "max_instances" {
+  type        = number
+  description = "Maximum Cloud Run instances, a cost safety limit."
+}
+
+variable "concurrency" {
+  type        = number
+  description = "Concurrent requests per instance. Keep close to pm.max_children in the PHP-FPM pool."
+}
+
+variable "enable_https" {
+  type        = bool
+  description = "Create a Google-managed certificate and HTTPS listener. Requires a domain."
+}
+
+variable "domain" {
+  type        = string
+  description = "Domain pointing at the load balancer IP. Leave empty when enable_https is false."
 } 
