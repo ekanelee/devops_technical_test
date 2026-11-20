@@ -50,7 +50,8 @@ Cloud Run has no fixed public IP of its own: the application's public IP is the 
 │   ├── modules/            # cloud-sql, static-bucket, cloud-run, load-balancer
 │   ├── main.tf             # Module wiring
 │   ├── variables.tf  locals.tf  outputs.tf  providers.tf  backend.tf
-└── .github/workflows/ci-cd.yml
+├── .github/workflows/ci-cd.yml
+└── scripts/get-ip.sh       # Prints the load balancer IP for dev or prod
 ```
  
 ## Prerequisites
@@ -141,6 +142,19 @@ curl "$(terraform output -raw app_url)/static/hello.txt"   # served from the buc
  
 A new load balancer can take a few minutes before it answers (404 or 502 at first is normal).
  
+### 7b. Retrieve the public IP with the Bash script
+
+Cloud Run has no fixed public IP of its own: the application's public IP is the global address of the load balancer. The script reads it from the address Terraform reserved (`app-<env>-ip`).
+
+    gcloud auth login                       # once, if you are not logged in
+    ./scripts/get-ip.sh dev                 # prints the IP, for example 34.x.x.x
+    curl "http://$(./scripts/get-ip.sh dev)/readyz"
+
+- Argument: `dev` or `prod` (anything else prints the usage message and exits with code 1).
+- Project: taken from `GCP_PROJECT_ID`, otherwise from `gcloud config`.
+- Output: only the IP goes to standard output, so it can be used inside `$(...)`; messages go to the screen and to `get-ip.log` with timestamps.
+- Errors handled: missing or invalid argument, `gcloud` not installed, no project set, address not found (environment not deployed, wrong project or not logged in).
+
 ### 8. Clean up (the Cloud SQL instance and the load balancer cost money while idle)
  
 ```bash
@@ -204,7 +218,9 @@ Error code 9 ... Revision 'app-dev-00001' is not ready and cannot serve traffic.
 | `Error acquiring the state lock` | Another apply is running, or a run crashed | Wait, or `terraform force-unlock <ID>` when sure |
 | 403 on the application | `allUsers` invoker blocked by an organisation policy | Document as a limitation or use an identity-aware proxy |
 | Managed certificate stuck in `PROVISIONING` | DNS does not point to the load balancer IP | Fix DNS and wait up to about an hour |
- 
+| get-ip.sh says it could not read the address | Environment not deployed, wrong project, or not logged in | Run gcloud auth login, check GCP_PROJECT_ID, and make sure terraform apply completed for that environment |
+| bad interpreter or \r: command not found | Windows line endings in the script | Run sed -i 's/\r$//' scripts/get-ip.sh and keep the .gitattributes rule |
+
 ## Known limitations and production improvements
  
 - CI service account has broad roles (including project IAM admin) so Terraform can manage everything; split plan and apply identities for production.
@@ -217,6 +233,5 @@ Error code 9 ... Revision 'app-dev-00001' is not ready and cannot serve traffic.
  
 - [x] Phase 1: Terraform (flat resources, then modules, remote state)
 - [x] Phase 2: GitHub Actions CI/CD (build, push, deploy, tests, environments)
-- [ ] Phase 3: Bash script `scripts/get-ip.sh <dev|prod>` (load balancer IP, error handling, logging)
+- [x] Phase 3: Bash script `scripts/get-ip.sh <dev|prod>` (load balancer IP, error handling, logging)
 - [ ] Phase 4: `dr.md` (disaster recovery) and `extra.md` (additional features)
- 
