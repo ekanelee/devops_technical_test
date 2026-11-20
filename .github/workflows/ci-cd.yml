@@ -111,3 +111,19 @@ jobs:
         run: >
           gcloud storage rsync app/public/static
           gs://${{ vars.GCP_PROJECT_ID }}-static-${TARGET_ENV}/static --recursive
+
+      # Prove the deployment works end to end: Internet -> LB -> Cloud Run -> Nginx -> PHP-FPM -> Cloud SQL.
+      # A brand-new load balancer can take a few minutes to answer, so retry.
+      - name: Smoke test
+        working-directory: terraform
+        run: |
+          URL="$(terraform output -raw app_url)"
+          echo "Testing ${URL}/readyz"
+          for attempt in $(seq 1 12); do
+            status="$(curl -s -o /dev/null -w '%{http_code}' "${URL}/readyz" || true)"
+            echo "attempt ${attempt}: HTTP ${status}"
+            if [ "${status}" = "200" ]; then exit 0; fi
+            sleep 10
+          done
+          echo "Smoke test failed" >&2
+          exit 1
