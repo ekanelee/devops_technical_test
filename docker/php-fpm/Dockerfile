@@ -9,5 +9,6 @@ COPY docker/php-fpm/zzz-app.conf /usr/local/etc/php-fpm.d/zzz-app.conf
 WORKDIR /var/www/html
 COPY app/ .
 
-USER www-data
+# PHP-FPM master starts with the image's default user.
+# Its worker processes use www-data through the pool configuration.
 EXPOSE 9000
