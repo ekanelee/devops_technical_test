@@ -22,23 +22,42 @@ variable "registry_repo" {
   type        = string
   description = "Artifact Registry repository created by the bootstrap layer."
   default     = "app"
-} 
-variable "db_name" { 
+}
+variable "db_name" {
+  type        = string
+  description = "Name of the application database inside the Cloud SQL instance."
+}
+
+variable "db_tier" {
+  type        = string
+  description = "Cloud SQL machine tier, e.g. db-f1-micro for dev."
+}
+
+variable "db_high_availability" {
+  type        = bool
+  description = "true = regional (HA) instance, false = single zone."
+}
+
+variable "deletion_protection" {
+  type        = bool
+  description = "Blocks accidental deletion of the database and Cloud Run service. false only in dev."
+}
+variable "image_tag" { 
   type        = string 
-  description = "Name of the application database inside the Cloud SQL instance." 
+  description = "Tag of the images to deploy (Git SHA). Supplied at run time, not in tfvars." 
 } 
  
-variable "db_tier" { 
-  type        = string 
-  description = "Cloud SQL machine tier, e.g. db-f1-micro for dev." 
+variable "min_instances" { 
+  type        = number 
+  description = "Minimum Cloud Run instances. 0 saves money but causes cold starts." 
 } 
  
-variable "db_high_availability" { 
-  type        = bool 
-  description = "true = regional (HA) instance, false = single zone." 
+variable "max_instances" { 
+  type        = number 
+  description = "Maximum Cloud Run instances, a cost safety limit." 
 } 
  
-variable "deletion_protection" { 
-  type        = bool 
-  description = "Blocks accidental deletion of the database and Cloud Run service. false only in dev." 
+variable "concurrency" { 
+  type        = number 
+  description = "Concurrent requests per instance. Keep close to pm.max_children in the PHP-FPM pool." 
 }

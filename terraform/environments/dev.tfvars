@@ -1,7 +1,10 @@
-region      = "europe-west1"
-project_id  = "devopstest-ddi"
-environment = "dev"
-db_name              = "app" 
-db_tier              = "db-f1-micro" 
-db_high_availability = false 
+region               = "europe-west1"
+project_id           = "devopstest-ddi"
+environment          = "dev"
+db_name              = "app"
+db_tier              = "db-f1-micro"
+db_high_availability = false
 deletion_protection  = false
+min_instances = 0 
+max_instances = 3 
+concurrency   = 10 
