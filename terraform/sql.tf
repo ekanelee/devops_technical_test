@@ -40,3 +40,30 @@ resource "google_sql_database" "app" {
   name     = var.db_name 
   instance = google_sql_database_instance.main.name 
 }
+# Random password: nobody types it, and it never appears in tfvars or in GitHub. 
+# special = false avoids characters that complicate connection strings. 
+resource "random_password" "db" { 
+  length  = 24 
+  special = false 
+} 
+ 
+resource "google_sql_user" "app" { 
+  name     = "app" 
+  instance = google_sql_database_instance.main.name 
+  password = random_password.db.result 
+} 
+ 
+# Store the password in Secret Manager; Cloud Run will read it from there. 
+# Docs: https://cloud.google.com/run/docs/configuring/services/secrets 
+resource "google_secret_manager_secret" "db_password" { 
+  secret_id = "${local.name}-db-password" 
+ 
+  replication { 
+    auto {} # replicated automatically; use user_managed if data residency matters 
+  } 
+} 
+ 
+resource "google_secret_manager_secret_version" "db_password" { 
+  secret      = google_secret_manager_secret.db_password.id 
+  secret_data = random_password.db.result 
+}
