@@ -13,6 +13,7 @@ permissions:
 env:
   # Docs: https://cloud.google.com/artifact-registry/docs/docker/pushing-and-pulling
   REGISTRY: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/app
+  TARGET_ENV: dev               # which environment this run deploys (tfvars + backend file)
 
 jobs:
   build-and-push:
@@ -62,3 +63,51 @@ jobs:
           tags: ${{ env.REGISTRY }}/nginx:${{ github.sha }}
           cache-from: type=gha,scope=nginx
           cache-to: type=gha,scope=nginx,mode=max
+
+  deploy:
+    needs: build-and-push       # only deploy images that were pushed successfully
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.CI_SA_EMAIL }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      # Wrapper disabled so 'terraform output' prints clean values.
+      # Docs: https://developer.hashicorp.com/terraform/tutorials/automation/github-actions
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      # Inputs that Terraform reads as TF_VAR_* variables (see variables.tf).
+      - name: Export Terraform inputs
+        run: |
+          echo "TF_VAR_project_id=${{ vars.GCP_PROJECT_ID }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_environment=${TARGET_ENV}" >> "$GITHUB_ENV"
+          echo "TF_VAR_image_tag=${{ github.sha }}" >> "$GITHUB_ENV"
+
+      # The backend file picks this environment's state in the GCS bucket.
+      - name: Terraform init
+        working-directory: terraform
+        run: terraform init -reconfigure -backend-config=environments/${TARGET_ENV}.backend.hcl
+
+      # The tfvars file injects this environment's sizing and settings.
+      - name: Terraform plan
+        working-directory: terraform
+        run: terraform plan -var-file=environments/${TARGET_ENV}.tfvars -out=tfplan
+
+      # Applying the saved plan guarantees that what was planned is what runs.
+      - name: Terraform apply
+        working-directory: terraform
+        run: terraform apply tfplan
+
+      # Upload static files to the bucket served by the load balancer under /static/.
+      # Docs: https://cloud.google.com/sdk/gcloud/reference/storage/rsync
+      - name: Sync static files
+        run: >
+          gcloud storage rsync app/public/static
+          gs://${{ vars.GCP_PROJECT_ID }}-static-${TARGET_ENV}/static --recursive
