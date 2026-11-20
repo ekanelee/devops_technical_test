@@ -8,3 +8,5 @@ deletion_protection  = false
 min_instances = 0 
 max_instances = 3 
 concurrency   = 10 
+enable_https = false 
+domain       = ""

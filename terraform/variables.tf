@@ -61,3 +61,13 @@ variable "concurrency" {
   type        = number 
   description = "Concurrent requests per instance. Keep close to pm.max_children in the PHP-FPM pool." 
 }
+
+variable "enable_https" { 
+  type        = bool 
+  description = "Create a Google-managed certificate and HTTPS listener. Requires a domain." 
+} 
+ 
+variable "domain" { 
+  type        = string 
+  description = "Domain pointing at the load balancer IP. Leave empty when enable_https is false." 
+} 
