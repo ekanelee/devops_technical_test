@@ -14,7 +14,7 @@ resource "google_project_iam_member" "runtime_sql_client" {
 
 # Read only this one secret, not all secrets. 
 resource "google_secret_manager_secret_iam_member" "runtime_db_password" {
-  secret_id = google_secret_manager_secret.db_password.secret_id
+  secret_id = module.cloud_sql.secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.runtime.email}"
 }
@@ -45,7 +45,7 @@ resource "google_cloud_run_v2_service" "app" {
     volumes {
       name = "cloudsql"
       cloud_sql_instance {
-        instances = [google_sql_database_instance.main.connection_name]
+        instances = [module.cloud_sql.connection_name]
       }
     }
 
@@ -88,18 +88,18 @@ resource "google_cloud_run_v2_service" "app" {
       }
       env {
         name  = "DB_USER"
-        value = google_sql_user.app.name
+        value = module.cloud_sql.db_user
       }
       env {
         name  = "DB_SOCKET"
-        value = "/cloudsql/${google_sql_database_instance.main.connection_name}"
+        value = "/cloudsql/${module.cloud_sql.connection_name}"
       }
       # Password injected from Secret Manager at runtime. 
       env {
         name = "DB_PASS"
         value_source {
           secret_key_ref {
-            secret  = google_secret_manager_secret.db_password.secret_id
+            secret  = module.cloud_sql.secret_id
             version = "latest"
           }
         }
@@ -129,7 +129,7 @@ resource "google_cloud_run_v2_service" "app" {
   depends_on = [
     google_project_iam_member.runtime_sql_client,
     google_secret_manager_secret_iam_member.runtime_db_password,
-    google_secret_manager_secret_version.db_password,
+    module.cloud_sql,
   ]
 }
 

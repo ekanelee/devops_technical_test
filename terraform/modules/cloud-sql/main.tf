@@ -6,7 +6,7 @@ resource "random_id" "db_suffix" {
 # MySQL instance. 
 # Docs: https://cloud.google.com/sql/docs/mysql/create-instance 
 resource "google_sql_database_instance" "main" {
-  name                = "${local.name}-db-${random_id.db_suffix.hex}"
+  name                = "${var.name}-db-${random_id.db_suffix.hex}"
   region              = var.region
   database_version    = "MYSQL_8_0"
   deletion_protection = var.deletion_protection # Terraform-level guard 
@@ -56,7 +56,7 @@ resource "google_sql_user" "app" {
 # Store the password in Secret Manager; Cloud Run will read it from there. 
 # Docs: https://cloud.google.com/run/docs/configuring/services/secrets 
 resource "google_secret_manager_secret" "db_password" {
-  secret_id = "${local.name}-db-password"
+  secret_id = "${var.name}-db-password"
 
   replication {
     auto {} # replicated automatically; use user_managed if data residency matters 
