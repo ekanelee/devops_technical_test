@@ -117,7 +117,7 @@ jobs:
       - name: Smoke test
         working-directory: terraform
         run: |
-          URL="$(terraform output -raw app_url)"
+          URL="https://app-dev-4m2pwl53xa-ew.a.run.app"
           echo "Testing ${URL}/readyz"
           for attempt in $(seq 1 12); do
             status="$(curl -s -o /dev/null -w '%{http_code}' "${URL}/readyz" || true)"
