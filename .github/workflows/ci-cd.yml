@@ -1,3 +1,9 @@
+# CI/CD pipeline for the PHP-FPM + Nginx application on Cloud Run.
+#
+#   pull request  -> PHP tests + Terraform checks (nothing is deployed)
+#   push to main  -> tests -> build and push images -> deploy to dev with Terraform
+#   manual run    -> choose dev or prod (prod waits for an approval)
+#
 # Authentication uses Workload Identity Federation (no JSON keys).
 # Docs: https://cloud.google.com/iam/docs/workload-identity-federation
 name: ci-cd
@@ -31,9 +37,54 @@ env:
   TARGET_ENV: ${{ inputs.environment || 'dev' }}   # manual runs choose; pushes default to dev
 
 jobs:
+# ---------------------------------------------------------------- tests
+  test:
+    name: PHP tests
+    runs-on: ubuntu-latest
+    # Throwaway MySQL for the integration test. Its password comes from a GitHub secret.
+    # Docs: https://docs.github.com/en/actions/using-containerized-services/about-service-containers
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: app_test
+          MYSQL_USER: ci
+          MYSQL_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:                         # read by the integration test through getenv()
+      DB_HOST: 127.0.0.1
+      DB_NAME: app_test
+      DB_USER: ci
+      DB_PASS: ${{ secrets.CI_DB_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, pdo_sqlite
+          tools: composer:v2
+
+      - name: Install dependencies
+        working-directory: app
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Run PHPUnit
+        working-directory: app
+        run: composer test  
+
+# ------------------------------------------------------ build and push
   build-and-push:
     runs-on: ubuntu-latest
-    
     steps:
       # Get the repository code onto the runner.
       - uses: actions/checkout@v4
@@ -79,7 +130,8 @@ jobs:
           tags: ${{ env.REGISTRY }}/nginx:${{ github.sha }}
           cache-from: type=gha,scope=nginx
           cache-to: type=gha,scope=nginx,mode=max
-
+          
+  # --------------------------------------------------------------- deploy
   deploy:
     needs: build-and-push       # only deploy images that were pushed successfully
     runs-on: ubuntu-latest
