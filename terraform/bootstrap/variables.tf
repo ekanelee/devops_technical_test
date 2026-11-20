@@ -13,4 +13,9 @@ variable "registry_repo" {
   type        = string
   description = "Name of the Artifact Registry Docker repository."
   default     = "app"
-} 
+}
+
+variable "github_repo" {
+  type        = string
+  description = "GitHub repository allowed to deploy, as owner/name (case-sensitive)."
+}
