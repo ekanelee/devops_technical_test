@@ -4,7 +4,22 @@ name: ci-cd
 
 on:
   push:
-    branches: [main]            # every push to main runs the pipeline
+    branches: [main]            # deploy to dev on every push to main
+    paths-ignore:
+      - '**.md'                 # docs-only changes don't need a deployment
+  pull_request:                 # run tests and checks on pull requests (no deployment)
+  workflow_dispatch:            # manual run from the Actions tab
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [dev, prod]
+        default: dev
+
+# One run per branch at a time; never cancel a running 'terraform apply'.
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -13,11 +28,12 @@ permissions:
 env:
   # Docs: https://cloud.google.com/artifact-registry/docs/docker/pushing-and-pulling
   REGISTRY: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/app
-  TARGET_ENV: dev               # which environment this run deploys (tfvars + backend file)
+  TARGET_ENV: ${{ inputs.environment || 'dev' }}   # manual runs choose; pushes default to dev
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    
     steps:
       # Get the repository code onto the runner.
       - uses: actions/checkout@v4
@@ -67,6 +83,8 @@ jobs:
   deploy:
     needs: build-and-push       # only deploy images that were pushed successfully
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'dev' }}   # prod pauses for approval
+
     steps:
       - uses: actions/checkout@v4
 
