@@ -1,0 +1,10 @@
+region               = "europe-west1"
+db_name              = "app"
+db_tier              = "db-n1-standard-1" # https://docs.cloud.google.com/sql/docs/mysql/machine-series-overview
+db_high_availability = true
+deletion_protection  = true
+min_instances        = 1
+max_instances        = 10
+concurrency          = 20
+enable_https         = false # set true plus a domain once DNS points at the LB IP
+domain               = ""

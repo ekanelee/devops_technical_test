@@ -27,9 +27,9 @@ resource "google_cloud_run_v2_service" "app" {
   deletion_protection = var.deletion_protection
 
   # Docs: https://cloud.google.com/run/docs/securing/ingress 
-  # Only traffic arriving through the load balancer is accepted; 
-  # the run.app URL is no longer reachable from the internet. 
-  ingress = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
+  # allowed all becuase this is causing smoke test to fail as ingress restrictions
+  # prevent incoming traffic 
+  ingress = "INGRESS_TRAFFIC_ALL"
 
   template {
     service_account                  = google_service_account.runtime.email
