@@ -16,3 +16,22 @@ module "static_bucket" {
   location      = var.region
   force_destroy = var.environment != "prod"
 }
+
+module "cloud_run" {
+  source = "./modules/cloud-run"
+
+  name                = local.name
+  project_id          = var.project_id
+  region              = var.region
+  environment         = var.environment
+  php_image           = local.php_image
+  nginx_image         = local.nginx_image
+  sql_connection_name = module.cloud_sql.connection_name
+  db_name             = var.db_name
+  db_user             = module.cloud_sql.db_user
+  db_secret_id        = module.cloud_sql.secret_id
+  min_instances       = var.min_instances
+  max_instances       = var.max_instances
+  concurrency         = var.concurrency
+  deletion_protection = var.deletion_protection
+}

@@ -11,7 +11,7 @@ resource "google_compute_region_network_endpoint_group" "run" {
   network_endpoint_type = "SERVERLESS"
 
   cloud_run {
-    service = google_cloud_run_v2_service.app.name
+    service = module.cloud_run.service_name
   }
 }
 

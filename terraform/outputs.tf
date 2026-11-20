@@ -5,7 +5,7 @@ output "lb_ip_address" {
 
 output "cloud_run_url" {
   description = "run.app URL of the service (unreachable from the internet once ingress is LB-only)."
-  value       = google_cloud_run_v2_service.app.uri
+  value       = module.cloud_run.url
 }
 
 output "static_bucket_name" {

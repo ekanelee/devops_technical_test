@@ -1,7 +1,7 @@
 # Dedicated identity for the running service: least privilege, one purpose. 
 # Docs: https://cloud.google.com/iam/docs/best-practices-service-accounts 
 resource "google_service_account" "runtime" {
-  account_id   = "${local.name}-run"
+  account_id   = "${var.name}-run"
   display_name = "Cloud Run runtime (${var.environment})"
 }
 
@@ -14,7 +14,7 @@ resource "google_project_iam_member" "runtime_sql_client" {
 
 # Read only this one secret, not all secrets. 
 resource "google_secret_manager_secret_iam_member" "runtime_db_password" {
-  secret_id = module.cloud_sql.secret_id
+  secret_id = var.db_secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.runtime.email}"
 }
@@ -22,7 +22,7 @@ resource "google_secret_manager_secret_iam_member" "runtime_db_password" {
 # One Cloud Run service with two containers: nginx (ingress) + php-fpm (sidecar). 
 # Docs: https://cloud.google.com/run/docs/deploying#sidecars 
 resource "google_cloud_run_v2_service" "app" {
-  name                = local.name
+  name                = var.name
   location            = var.region
   deletion_protection = var.deletion_protection
 
@@ -45,14 +45,14 @@ resource "google_cloud_run_v2_service" "app" {
     volumes {
       name = "cloudsql"
       cloud_sql_instance {
-        instances = [module.cloud_sql.connection_name]
+        instances = [var.sql_connection_name]
       }
     }
 
     # Ingress container: the only one with a port. Starts after php-fpm. 
     containers {
       name       = "nginx"
-      image      = local.nginx_image
+      image      = var.nginx_image
       depends_on = ["php-fpm"]
 
       ports {
@@ -76,7 +76,7 @@ resource "google_cloud_run_v2_service" "app" {
     # Sidecar: only this container talks to the database. 
     containers {
       name  = "php-fpm"
-      image = local.php_image
+      image = var.php_image
 
       env {
         name  = "APP_ENV"
@@ -88,18 +88,18 @@ resource "google_cloud_run_v2_service" "app" {
       }
       env {
         name  = "DB_USER"
-        value = module.cloud_sql.db_user
+        value = var.db_user
       }
       env {
         name  = "DB_SOCKET"
-        value = "/cloudsql/${module.cloud_sql.connection_name}"
+        value = "/cloudsql/${var.sql_connection_name}"
       }
       # Password injected from Secret Manager at runtime. 
       env {
         name = "DB_PASS"
         value_source {
           secret_key_ref {
-            secret  = module.cloud_sql.secret_id
+            secret  = var.db_secret_id
             version = "latest"
           }
         }
@@ -129,7 +129,6 @@ resource "google_cloud_run_v2_service" "app" {
   depends_on = [
     google_project_iam_member.runtime_sql_client,
     google_secret_manager_secret_iam_member.runtime_db_password,
-    module.cloud_sql,
   ]
 }
 
