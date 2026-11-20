@@ -35,3 +35,14 @@ module "cloud_run" {
   concurrency         = var.concurrency
   deletion_protection = var.deletion_protection
 }
+
+module "load_balancer" {
+  source = "./modules/load-balancer"
+
+  name                   = local.name
+  region                 = var.region
+  cloud_run_service_name = module.cloud_run.service_name
+  static_bucket_name     = module.static_bucket.bucket_name
+  enable_https           = var.enable_https
+  domain                 = var.domain
+}
