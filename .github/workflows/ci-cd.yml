@@ -1,0 +1,34 @@
+# CI/CD pipeline: build the images, push them to Artifact Registry, deploy with Terraform.
+# Authentication uses Workload Identity Federation (no JSON keys).
+# Docs: https://cloud.google.com/iam/docs/workload-identity-federation
+name: ci-cd
+
+on:
+  push:
+    branches: [main]            # every push to main runs the pipeline
+
+permissions:
+  contents: read
+  id-token: write               # lets the job request the OIDC token that WIF exchanges
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Get the repository code onto the runner.
+      - uses: actions/checkout@v4
+
+      # 2. Exchange GitHub's OIDC token for short-lived Google credentials.
+      # Docs: https://github.com/google-github-actions/auth
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.CI_SA_EMAIL }}
+
+      # 3. Install the gcloud CLI, already authenticated by the step above.
+      - uses: google-github-actions/setup-gcloud@v2
+
+      # Temporary check: proves authentication works.
+      - name: Who am I?
+        run: gcloud auth list
