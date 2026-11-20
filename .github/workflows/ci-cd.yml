@@ -117,13 +117,14 @@ jobs:
       - name: Smoke test
         working-directory: terraform
         run: |
-          URL="https://app-dev-4m2pwl53xa-ew.a.run.app"
+          URL="$(terraform output -raw cloud_run_url)"
           echo "Testing ${URL}/readyz"
-          for attempt in $(seq 1 12); do
-            status="$(curl -s -o /dev/null -w '%{http_code}' "${URL}/readyz" || true)"
+          for attempt in $(seq 1 30); do
+            status="$(curl -s -o /dev/null --max-time 10 -w '%{http_code}' "${URL}/readyz" || true)"
             echo "attempt ${attempt}: HTTP ${status}"
             if [ "${status}" = "200" ]; then exit 0; fi
             sleep 10
           done
-          echo "Smoke test failed" >&2
+          echo "Smoke test failed; last response:" >&2
+          curl -si --max-time 10 "${URL}/readyz" >&2 || true
           exit 1
