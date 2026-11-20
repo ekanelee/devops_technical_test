@@ -1,3 +1,6 @@
 .git
 terraform
 *.md
+app/vendor
+app/tests
+app/phpunit.xml
