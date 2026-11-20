@@ -8,3 +8,11 @@ module "cloud_sql" {
   db_high_availability = var.db_high_availability
   deletion_protection  = var.deletion_protection
 }
+
+module "static_bucket" {
+  source = "./modules/static-bucket"
+
+  bucket_name   = "${var.project_id}-static-${var.environment}"
+  location      = var.region
+  force_destroy = var.environment != "prod"
+}

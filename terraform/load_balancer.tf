@@ -30,7 +30,7 @@ resource "google_compute_backend_service" "app" {
 # Docs: https://cloud.google.com/cdn/docs/setting-up-cdn-with-bucket 
 resource "google_compute_backend_bucket" "static" {
   name        = "${local.name}-static"
-  bucket_name = google_storage_bucket.static.name
+  bucket_name = module.static_bucket.bucket_name
   enable_cdn  = true
 }
 

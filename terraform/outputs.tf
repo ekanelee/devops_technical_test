@@ -10,7 +10,7 @@ output "cloud_run_url" {
 
 output "static_bucket_name" {
   description = "Bucket that holds the static files (upload under static/)."
-  value       = google_storage_bucket.static.name
+  value       = module.static_bucket.bucket_name
 }
 
 output "sql_connection_name" {

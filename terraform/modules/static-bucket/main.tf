@@ -1,10 +1,10 @@
 # Bucket for static files (css, js, images), served through the load balancer. 
 # Docs: https://cloud.google.com/cdn/docs/setting-up-cdn-with-bucket 
 resource "google_storage_bucket" "static" {
-  name                        = "${var.project_id}-static-${var.environment}" # bucket names are global 
-  location                    = var.region
+  name                        = "${var.bucket_name}" # bucket names are global 
+  location                    = var.location
   uniform_bucket_level_access = true                      # IAM only, no per-object ACLs 
-  force_destroy               = var.environment != "prod" # lets 'destroy' empty it in dev 
+  force_destroy               = var.force_destroy # lets 'destroy' empty it in dev 
 }
 
 # Public read: the load balancer's backend bucket serves objects anonymously. 
